@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>掃票系統 — 哈佛元智音樂會 2.0</title>
+<script src="https://unpkg.com/jsqr@1.4.0/dist/jsQR.js"></script>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #0a0a0f;
+    --surface: #13131a;
+    --surface2: #1c1c28;
+    --border: rgba(255,255,255,0.08);
+    --text: #f0f0f5;
+    --text2: #8888a0;
+    --accent: #7c6fff;
+    --success: #22d07a;
+    --warn: #ffb344;
+    --danger: #ff5c5c;
+    --radius: 16px;
+  }
+  body { background: var(--bg); color: var(--text); font-family: -apple-system, 'Helvetica Neue', sans-serif; min-height: 100dvh; }
+
+  .header {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 14px 20px;
+    display: flex; align-items: center; justify-content: space-between;
+    position: sticky; top: 0; z-index: 10;
+  }
+  .header-title { font-size: 15px; font-weight: 600; letter-spacing: -0.3px; }
+  .header-sub { font-size: 12px; color: var(--text2); margin-top: 2px; }
+  .count-badge { background: var(--accent); color: white; font-size: 12px; font-weight: 600; padding: 4px 12px; border-radius: 20px; }
+
+  .main { padding: 20px 16px; max-width: 480px; margin: 0 auto; }
+
+  .tabs { display: flex; background: var(--surface2); border-radius: 12px; padding: 4px; margin-bottom: 20px; }
+  .tab { flex: 1; text-align: center; padding: 9px; font-size: 13px; font-weight: 500; color: var(--text2); border-radius: 8px; cursor: pointer; transition: all 0.2s; }
+  .tab.active { background: var(--surface); color: var(--text); box-shadow: 0 1px 6px rgba(0,0,0,0.4); }
+
+  .panel { display: none; }
+  .panel.active { display: block; }
+
+  /* Camera panel */
+  .camera-wrap { position: relative; border-radius: var(--radius); overflow: hidden; background: #000; aspect-ratio: 1; width: 100%; }
+  #video { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .scan-overlay { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; pointer-events: none; }
+  .scan-frame { width: 65%; aspect-ratio: 1; border: 2px solid var(--accent); border-radius: 12px; box-shadow: 0 0 0 9999px rgba(0,0,0,0.5); }
+  .scan-line { position: absolute; width: 65%; height: 2px; background: linear-gradient(90deg, transparent, var(--accent), transparent); animation: scanline 2s ease-in-out infinite; }
+  @keyframes scanline { 0%,100% { top: 17.5% } 50% { top: 82.5% } }
+  #canvas { display: none; }
+  .cam-hint { text-align: center; margin-top: 12px; font-size: 13px; color: var(--text2); }
+
+  /* Upload panel */
+  .upload-area { border: 2px dashed var(--border); border-radius: var(--radius); padding: 40px 20px; text-align: center; cursor: pointer; transition: border-color 0.2s; }
+  .upload-area:hover { border-color: var(--accent); }
+  .upload-icon { font-size: 40px; margin-bottom: 12px; }
+  .upload-text { font-size: 14px; color: var(--text2); }
+  #fileInput { display: none; }
+  #preview-img { width: 100%; border-radius: var(--radius); margin-top: 16px; display: none; }
+
+  /* Manual panel */
+  .input-group { margin-bottom: 12px; }
+  .input-group label { display: block; font-size: 12px; color: var(--text2); margin-bottom: 6px; }
+  .input-group input {
+    width: 100%; background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 10px; padding: 13px 16px; font-size: 15px; color: var(--text);
+    outline: none; transition: border-color 0.2s; letter-spacing: 1px;
+  }
+  .input-group input:focus { border-color: var(--accent); }
+  .btn {
+    width: 100%; padding: 15px; font-size: 15px; font-weight: 600;
+    background: var(--accent); color: white; border: none; border-radius: 12px;
+    cursor: pointer; transition: opacity 0.2s, transform 0.1s; margin-top: 4px;
+  }
+  .btn:active { transform: scale(0.98); opacity: 0.85; }
+  .btn.secondary { background: var(--surface2); color: var(--text); border: 1px solid var(--border); }
+
+  /* Result */
+  .result { border-radius: var(--radius); padding: 20px; margin-top: 16px; text-align: center; display: none; animation: pop 0.25s ease; }
+  @keyframes pop { from { transform: scale(0.9); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+  .result.success { background: rgba(34,208,122,0.12); border: 1px solid rgba(34,208,122,0.3); }
+  .result.warn { background: rgba(255,179,68,0.12); border: 1px solid rgba(255,179,68,0.3); }
+  .result.error { background: rgba(255,92,92,0.12); border: 1px solid rgba(255,92,92,0.3); }
+  .result-icon { font-size: 48px; margin-bottom: 8px; }
+  .result-msg { font-size: 18px; font-weight: 600; }
+  .result-name { font-size: 24px; font-weight: 700; margin: 8px 0 4px; }
+  .result-id { font-size: 12px; color: var(--text2); font-family: monospace; }
+
+  .device-row { display: flex; align-items: center; gap: 8px; margin-bottom: 20px; }
+  .device-row label { font-size: 12px; color: var(--text2); white-space: nowrap; }
+  .device-row input { flex: 1; background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; padding: 8px 12px; font-size: 13px; color: var(--text); outline: none; }
+
+  .loading { text-align: center; padding: 20px; color: var(--text2); font-size: 14px; display: none; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div>
+    <div class="header-title">🎵 哈佛元智音樂會 2.0</div>
+    <div class="header-sub">掃票系統</div>
+  </div>
+  <div class="count-badge" id="headerCount">入場 0</div>
+</div>
+
+<div class="main">
+  <div class="device-row">
+    <label>入口編號</label>
+    <input id="deviceId" placeholder="例如：入口A" value="入口A">
+  </div>
+
+  <div class="tabs">
+    <div class="tab active" onclick="switchTab('camera')">📷 相機掃描</div>
+    <div class="tab" onclick="switchTab('upload')">🖼 上傳圖片</div>
+    <div class="tab" onclick="switchTab('manual')">⌨️ 手動輸入</div>
+  </div>
+
+  <!-- Camera -->
+  <div id="tab-camera" class="panel active">
+    <div class="camera-wrap">
+      <video id="video" autoplay playsinline muted></video>
+      <canvas id="canvas"></canvas>
+      <div class="scan-overlay">
+        <div class="scan-frame"></div>
+        <div class="scan-line"></div>
+      </div>
+    </div>
+    <p class="cam-hint" id="camHint">按下開始掃描</p>
+    <button class="btn" id="camBtn" onclick="toggleCamera()" style="margin-top:12px">開始掃描</button>
+  </div>
+
+  <!-- Upload -->
+  <div id="tab-upload" class="panel">
+    <div class="upload-area" onclick="document.getElementById('fileInput').click()">
+      <div class="upload-icon">📂</div>
+      <div class="upload-text">點擊選擇 QR Code 圖片<br>或截圖後選取</div>
+    </div>
+    <input type="file" id="fileInput" accept="image/*" onchange="handleFile(event)">
+    <img id="preview-img">
+    <button class="btn" id="uploadScanBtn" onclick="scanUploadedImage()" style="display:none;margin-top:12px">掃描此圖片</button>
+  </div>
+
+  <!-- Manual -->
+  <div id="tab-manual" class="panel">
+    <div class="input-group">
+      <label>票券 ID</label>
+      <input id="manualId" placeholder="輸入票券 ID（英數字）" autocomplete="off" autocorrect="off" autocapitalize="off">
+    </div>
+    <button class="btn" onclick="manualVerify()">驗票</button>
+  </div>
+
+  <div class="loading" id="loading">驗票中...</div>
+
+  <div class="result" id="result">
+    <div class="result-icon" id="rIcon"></div>
+    <div class="result-msg" id="rMsg"></div>
+    <div class="result-name" id="rName"></div>
+    <div class="result-id" id="rId"></div>
+  </div>
+</div>
+
+<script>
+// ⚠️ 將下方網址換成你的 Google Apps Script 部署網址
+const API_URL = 'https://script.google.com/a/macros/g.yzu.edu.tw/s/AKfycbwGZCWcn-JdrR7dSB61vkRQW614APYGjwr-LRDc_fgYSkWxLboBHwAkEk5HkxpEhH0r/exec';
+
+let cameraActive = false;
+let videoStream = null;
+let scanInterval = null;
+let uploadedImageData = null;
+let checkedInCount = 0;
+
+// ---- Stats ----
+async function fetchStats() {
+  try {
+    const res = await fetch(API_URL + '?action=stats');
+    const data = await res.json();
+    if (data.success) {
+      checkedInCount = data.checked_in;
+      document.getElementById('headerCount').textContent = `入場 ${checkedInCount}`;
+    }
+  } catch(e) {}
+}
+fetchStats();
+setInterval(fetchStats, 30000);
+
+// ---- Tabs ----
+function switchTab(tab) {
+  ['camera','upload','manual'].forEach(t => {
+    document.getElementById('tab-' + t).classList.toggle('active', t === tab);
+  });
+  document.querySelectorAll('.tab').forEach((el, i) => {
+    el.classList.toggle('active', ['camera','upload','manual'][i] === tab);
+  });
+  if (tab !== 'camera' && cameraActive) stopCamera();
+  clearResult();
+}
+
+// ---- Camera ----
+async function toggleCamera() {
+  if (cameraActive) {
+    stopCamera();
+  } else {
+    startCamera();
+  }
+}
+
+async function startCamera() {
+  try {
+    videoStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+    document.getElementById('video').srcObject = videoStream;
+    document.getElementById('camBtn').textContent = '停止掃描';
+    document.getElementById('camHint').textContent = '將 QR Code 對準框框';
+    cameraActive = true;
+    scanInterval = setInterval(scanFrame, 400);
+  } catch(e) {
+    document.getElementById('camHint').textContent = '無法存取相機，請改用上傳圖片';
+  }
+}
+
+function stopCamera() {
+  if (videoStream) { videoStream.getTracks().forEach(t => t.stop()); videoStream = null; }
+  clearInterval(scanInterval);
+  cameraActive = false;
+  document.getElementById('camBtn').textContent = '開始掃描';
+  document.getElementById('camHint').textContent = '按下開始掃描';
+}
+
+function scanFrame() {
+  const video = document.getElementById('video');
+  if (!video.videoWidth) return;
+  const canvas = document.getElementById('canvas');
+  canvas.width = video.videoWidth;
+  canvas.height = video.videoHeight;
+  const ctx = canvas.getContext('2d');
+  ctx.drawImage(video, 0, 0);
+  const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+  const code = jsQR(imageData.data, imageData.width, imageData.height, { inversionAttempts: 'dontInvert' });
+  if (code && code.data) {
+    stopCamera();
+    processTicket(code.data);
+  }
+}
+
+// ---- Upload ----
+function handleFile(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    const img = document.getElementById('preview-img');
+    img.src = e.target.result;
+    img.style.display = 'block';
+    uploadedImageData = e.target.result;
+    document.getElementById('uploadScanBtn').style.display = 'block';
+  };
+  reader.readAsDataURL(file);
+}
+
+function scanUploadedImage() {
+  if (!uploadedImageData) return;
+  const img = new Image();
+  img.onload = () => {
+    const canvas = document.createElement('canvas');
+    canvas.width = img.width;
+    canvas.height = img.height;
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(img, 0, 0);
+    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    const code = jsQR(imageData.data, imageData.width, imageData.height, { inversionAttempts: 'attemptBoth' });
+    if (code && code.data) {
+      processTicket(code.data);
+    } else {
+      showResult('error', '❌', '無法識別 QR Code', '請確認圖片清晰', '');
+    }
+  };
+  img.src = uploadedImageData;
+}
+
+// ---- Manual ----
+function manualVerify() {
+  const id = document.getElementById('manualId').value.trim();
+  if (!id) return;
+  processTicket(id);
+}
+
+// ---- Process ----
+async function processTicket(ticketId) {
+  clearResult();
+  document.getElementById('loading').style.display = 'block';
+  const device = document.getElementById('deviceId').value.trim() || '入口';
+  try {
+    const res = await fetch(API_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'verify', ticket_id: ticketId, device: device })
+    });
+    const data = await res.json();
+    document.getElementById('loading').style.display = 'none';
+
+    if (data.success) {
+      checkedInCount++;
+      document.getElementById('headerCount').textContent = `入場 ${checkedInCount}`;
+      showResult('success', '✅', '歡迎入場！', data.name || '', `票券：${data.ticket_id}`);
+      vibrate([100, 50, 100]);
+    } else if (data.duplicate) {
+      showResult('warn', '⚠️', '重複入場', data.name || '', `此票已掃描 ${data.scan_count} 次`);
+      vibrate([300]);
+    } else if (data.not_found) {
+      showResult('error', '❌', '票券無效', '', `ID：${ticketId}`);
+      vibrate([500]);
+    } else {
+      showResult('error', '❌', data.message || '驗票失敗', '', '');
+    }
+  } catch(e) {
+    document.getElementById('loading').style.display = 'none';
+    showResult('error', '❌', '網路錯誤，請重試', '', '');
+  }
+  setTimeout(clearResult, 5000);
+}
+
+function showResult(type, icon, msg, name, id) {
+  const el = document.getElementById('result');
+  el.className = 'result ' + type;
+  el.style.display = 'block';
+  document.getElementById('rIcon').textContent = icon;
+  document.getElementById('rMsg').textContent = msg;
+  document.getElementById('rName').textContent = name;
+  document.getElementById('rId').textContent = id;
+}
+
+function clearResult() {
+  document.getElementById('result').style.display = 'none';
+}
+
+function vibrate(pattern) {
+  if (navigator.vibrate) navigator.vibrate(pattern);
+}
+
+// Enter key for manual input
+document.getElementById('manualId').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') manualVerify();
+});
+</script>
+</body>
+</html>
