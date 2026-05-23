@@ -3,345 +3,917 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>掃票系統 — 哈佛元智音樂會 2.0</title>
+<title>哈佛元智音樂會 2.0 工作人員系統</title>
 <script src="https://unpkg.com/jsqr@1.4.0/dist/jsQR.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@700;900&display=swap" rel="stylesheet">
 <style>
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  :root {
-    --bg: #0a0a0f;
-    --surface: #13131a;
-    --surface2: #1c1c28;
-    --border: rgba(255,255,255,0.08);
-    --text: #f0f0f5;
-    --text2: #8888a0;
-    --accent: #7c6fff;
-    --success: #22d07a;
-    --warn: #ffb344;
-    --danger: #ff5c5c;
-    --radius: 16px;
-  }
-  body { background: var(--bg); color: var(--text); font-family: -apple-system, 'Helvetica Neue', sans-serif; min-height: 100dvh; }
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+:root{
+  --bg:#080810;--surface:#10101c;--surface2:#181828;
+  --border:rgba(255,255,255,0.07);--text:#f0f0f5;--text2:#7070a0;
+  --gold:#c9a84c;--gold-l:#e8c76a;--red:#c0392b;
+  --accent:#6c63ff;--success:#22d07a;--warn:#ffb344;--danger:#ff5c5c;
+  --r:16px;
+}
+html,body{height:100%}
+body{
+  background:var(--bg);color:var(--text);
+  font-family:-apple-system,'Helvetica Neue',sans-serif;
+  min-height:100dvh;
+  background-image:repeating-linear-gradient(180deg,transparent 0,transparent 22px,rgba(255,255,255,.018) 22px,rgba(255,255,255,.018) 23px);
+}
 
-  .header {
-    background: var(--surface);
-    border-bottom: 1px solid var(--border);
-    padding: 14px 20px;
-    display: flex; align-items: center; justify-content: space-between;
-    position: sticky; top: 0; z-index: 10;
-  }
-  .header-title { font-size: 15px; font-weight: 600; letter-spacing: -0.3px; }
-  .header-sub { font-size: 12px; color: var(--text2); margin-top: 2px; }
-  .count-badge { background: var(--accent); color: white; font-size: 12px; font-weight: 600; padding: 4px 12px; border-radius: 20px; }
+/* ══ PAGE SYSTEM ══ */
+.page{display:none;min-height:100dvh;flex-direction:column}
+.page.active{display:flex}
 
-  .main { padding: 20px 16px; max-width: 480px; margin: 0 auto; }
+/* ══ LOGIN PAGE ══ */
+.login-wrap{
+  flex:1;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;padding:32px 24px;
+}
+.login-logo{
+  font-family:'Cinzel',serif;font-size:64px;font-weight:900;
+  color:var(--red);line-height:1;
+  text-shadow:0 0 40px rgba(192,57,43,.4);margin-bottom:4px;
+}
+.login-event{
+  font-family:'Cinzel',serif;font-size:11px;letter-spacing:3px;
+  background:linear-gradient(90deg,var(--gold),var(--gold-l),var(--gold));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+  background-clip:text;text-align:center;margin-bottom:32px;
+}
+.login-card{
+  width:100%;max-width:340px;
+  background:var(--surface);border:1px solid rgba(201,168,76,.2);
+  border-radius:20px;padding:24px;
+}
+.login-title{font-size:14px;font-weight:700;color:var(--text);margin-bottom:4px;letter-spacing:.5px}
+.login-sub{font-size:11px;color:var(--text2);margin-bottom:20px;letter-spacing:.3px}
+.login-pin-display{
+  display:flex;gap:10px;justify-content:center;margin-bottom:20px;height:52px;align-items:center;
+}
+.pin-dot{
+  width:14px;height:14px;border-radius:50%;
+  border:2px solid var(--text2);background:transparent;
+  transition:all .15s;
+}
+.pin-dot.filled{background:var(--gold);border-color:var(--gold);box-shadow:0 0 8px rgba(201,168,76,.5)}
+.pin-dot.error{background:var(--danger);border-color:var(--danger)}
+.numpad{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px}
+.num-btn{
+  height:58px;font-size:22px;font-weight:700;
+  background:var(--surface2);color:var(--text);
+  border:1px solid var(--border);border-radius:14px;
+  cursor:pointer;transition:all .12s;display:flex;align-items:center;justify-content:center;
+}
+.num-btn:active{transform:scale(.93);background:rgba(201,168,76,.15);border-color:var(--gold)}
+.num-btn.del{font-size:18px;color:var(--text2)}
+.num-btn.zero{grid-column:2}
+.login-err{text-align:center;font-size:12px;color:var(--danger);height:16px;letter-spacing:.5px}
 
-  .tabs { display: flex; background: var(--surface2); border-radius: 12px; padding: 4px; margin-bottom: 20px; }
-  .tab { flex: 1; text-align: center; padding: 9px; font-size: 13px; font-weight: 500; color: var(--text2); border-radius: 8px; cursor: pointer; transition: all 0.2s; }
-  .tab.active { background: var(--surface); color: var(--text); box-shadow: 0 1px 6px rgba(0,0,0,0.4); }
+/* ══ HOME PAGE ══ */
+.home-header{
+  background:rgba(8,8,16,.95);
+  border-bottom:1px solid rgba(201,168,76,.2);
+  padding:14px 16px 12px;
+}
+.home-header-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:2px}
+.home-logo-row{display:flex;align-items:center;gap:8px}
+.home-logo-ii{font-family:'Cinzel',serif;font-size:18px;font-weight:900;color:var(--red)}
+.home-title{font-family:'Cinzel',serif;font-size:11px;letter-spacing:2px;
+  background:linear-gradient(90deg,var(--gold),var(--gold-l));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.home-sub{font-size:10px;color:var(--text2);letter-spacing:.5px}
+.staff-pill{
+  background:rgba(201,168,76,.12);border:1px solid rgba(201,168,76,.25);
+  border-radius:20px;padding:5px 12px;
+  font-size:11px;color:var(--gold);font-weight:700;letter-spacing:.5px;
+}
+.home-body{flex:1;overflow-y:auto;padding:16px 16px 100px}
 
-  .panel { display: none; }
-  .panel.active { display: block; }
+.home-date-card{
+  background:var(--surface);border:1px solid rgba(201,168,76,.15);
+  border-radius:var(--r);padding:14px 16px;margin-bottom:14px;
+  display:flex;align-items:center;gap:14px;
+}
+.home-date-block{text-align:center;min-width:52px}
+.home-date-day{font-family:'Cinzel',serif;font-size:28px;font-weight:900;color:var(--gold);line-height:1}
+.home-date-mon{font-size:10px;color:var(--text2);letter-spacing:1px}
+.home-date-info{}
+.home-date-title{font-size:14px;font-weight:700;color:var(--text);margin-bottom:2px}
+.home-date-detail{font-size:11px;color:var(--text2);line-height:1.6}
 
-  /* Camera panel */
-  .camera-wrap { position: relative; border-radius: var(--radius); overflow: hidden; background: #000; aspect-ratio: 1; width: 100%; }
-  #video { width: 100%; height: 100%; object-fit: cover; display: block; }
-  .scan-overlay { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; pointer-events: none; }
-  .scan-frame { width: 65%; aspect-ratio: 1; border: 2px solid var(--accent); border-radius: 12px; box-shadow: 0 0 0 9999px rgba(0,0,0,0.5); }
-  .scan-line { position: absolute; width: 65%; height: 2px; background: linear-gradient(90deg, transparent, var(--accent), transparent); animation: scanline 2s ease-in-out infinite; }
-  @keyframes scanline { 0%,100% { top: 17.5% } 50% { top: 82.5% } }
-  #canvas { display: none; }
-  .cam-hint { text-align: center; margin-top: 12px; font-size: 13px; color: var(--text2); }
+.section-title{font-size:10px;letter-spacing:2px;color:var(--gold);text-transform:uppercase;margin-bottom:10px;font-weight:700}
 
-  /* Upload panel */
-  .upload-area { border: 2px dashed var(--border); border-radius: var(--radius); padding: 40px 20px; text-align: center; cursor: pointer; transition: border-color 0.2s; }
-  .upload-area:hover { border-color: var(--accent); }
-  .upload-icon { font-size: 40px; margin-bottom: 12px; }
-  .upload-text { font-size: 14px; color: var(--text2); }
-  #fileInput { display: none; }
-  #preview-img { width: 100%; border-radius: var(--radius); margin-top: 16px; display: none; }
+/* 流程表 */
+.timeline{position:relative;padding-left:14px;margin-bottom:20px}
+.timeline::before{content:'';position:absolute;left:0;top:0;bottom:0;width:1px;background:rgba(201,168,76,.2)}
+.tl-item{position:relative;padding:0 0 14px 16px}
+.tl-item::before{
+  content:'';position:absolute;left:-4px;top:5px;
+  width:9px;height:9px;border-radius:50%;
+  background:var(--surface);border:2px solid var(--text2);
+}
+.tl-item.highlight::before{background:var(--gold);border-color:var(--gold);box-shadow:0 0 6px rgba(201,168,76,.5)}
+.tl-item.now::before{background:var(--success);border-color:var(--success);box-shadow:0 0 8px rgba(34,208,122,.6)}
+.tl-time{font-size:11px;color:var(--gold);font-weight:700;letter-spacing:.5px;margin-bottom:2px}
+.tl-event{font-size:13px;font-weight:600;color:var(--text)}
+.tl-note{font-size:11px;color:var(--text2);margin-top:2px;line-height:1.5}
+.tl-badge{
+  display:inline-block;font-size:9px;padding:1px 7px;border-radius:10px;
+  background:rgba(192,57,43,.2);color:#ff7a6e;border:1px solid rgba(192,57,43,.3);
+  margin-left:6px;vertical-align:middle;letter-spacing:.5px;font-weight:700;
+}
+.tl-badge.green{background:rgba(34,208,122,.15);color:var(--success);border-color:rgba(34,208,122,.3)}
+.now-label{
+  display:inline-block;font-size:9px;padding:2px 8px;border-radius:10px;
+  background:rgba(34,208,122,.2);color:var(--success);border:1px solid rgba(34,208,122,.3);
+  font-weight:700;letter-spacing:1px;margin-bottom:12px;
+}
 
-  /* Manual panel */
-  .input-group { margin-bottom: 12px; }
-  .input-group label { display: block; font-size: 12px; color: var(--text2); margin-bottom: 6px; }
-  .input-group input {
-    width: 100%; background: var(--surface2); border: 1px solid var(--border);
-    border-radius: 10px; padding: 13px 16px; font-size: 15px; color: var(--text);
-    outline: none; transition: border-color 0.2s; letter-spacing: 1px;
-  }
-  .input-group input:focus { border-color: var(--accent); }
-  .btn {
-    width: 100%; padding: 15px; font-size: 15px; font-weight: 600;
-    background: var(--accent); color: white; border: none; border-radius: 12px;
-    cursor: pointer; transition: opacity 0.2s, transform 0.1s; margin-top: 4px;
-  }
-  .btn:active { transform: scale(0.98); opacity: 0.85; }
-  .btn.secondary { background: var(--surface2); color: var(--text); border: 1px solid var(--border); }
+/* 緊急聯絡 */
+.contact-cards{display:flex;flex-direction:column;gap:8px;margin-bottom:20px}
+.contact-card{
+  background:var(--surface);border:1px solid var(--border);
+  border-radius:12px;padding:12px 14px;
+  display:flex;align-items:center;justify-content:space-between;
+}
+.contact-info{}
+.contact-role{font-size:10px;color:var(--text2);letter-spacing:.5px;margin-bottom:2px}
+.contact-name{font-size:14px;font-weight:700;color:var(--text)}
+.contact-call{
+  background:rgba(34,208,122,.15);border:1px solid rgba(34,208,122,.25);
+  border-radius:10px;padding:8px 14px;
+  font-size:13px;font-weight:700;color:var(--success);
+  text-decoration:none;letter-spacing:.5px;
+}
 
-  /* Result */
-  .result { border-radius: var(--radius); padding: 20px; margin-top: 16px; text-align: center; display: none; animation: pop 0.25s ease; }
-  @keyframes pop { from { transform: scale(0.9); opacity: 0; } to { transform: scale(1); opacity: 1; } }
-  .result.success { background: rgba(34,208,122,0.12); border: 1px solid rgba(34,208,122,0.3); }
-  .result.warn { background: rgba(255,179,68,0.12); border: 1px solid rgba(255,179,68,0.3); }
-  .result.error { background: rgba(255,92,92,0.12); border: 1px solid rgba(255,92,92,0.3); }
-  .result-icon { font-size: 48px; margin-bottom: 8px; }
-  .result-msg { font-size: 18px; font-weight: 600; }
-  .result-name { font-size: 24px; font-weight: 700; margin: 8px 0 4px; }
-  .result-id { font-size: 12px; color: var(--text2); font-family: monospace; }
+/* 開始掃票按鈕 */
+.scan-cta{
+  position:fixed;bottom:0;left:0;right:0;
+  padding:12px 16px 28px;
+  background:linear-gradient(0deg,rgba(8,8,16,1) 60%,transparent);
+  z-index:20;
+}
+.scan-btn{
+  width:100%;padding:18px;
+  background:linear-gradient(135deg,var(--gold),var(--gold-l));
+  color:#080810;font-size:16px;font-weight:800;
+  border:none;border-radius:16px;cursor:pointer;
+  letter-spacing:.5px;font-family:inherit;
+  transition:transform .1s;
+  display:flex;align-items:center;justify-content:center;gap:8px;
+}
+.scan-btn:active{transform:scale(.97)}
 
-  .device-row { display: flex; align-items: center; gap: 8px; margin-bottom: 20px; }
-  .device-row label { font-size: 12px; color: var(--text2); white-space: nowrap; }
-  .device-row input { flex: 1; background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; padding: 8px 12px; font-size: 13px; color: var(--text); outline: none; }
+/* ══ SCANNER PAGE ══ */
+.scanner-header{
+  background:rgba(8,8,16,.95);
+  border-bottom:1px solid rgba(201,168,76,.2);
+  padding:10px 14px;
+  display:flex;align-items:center;justify-content:space-between;
+  position:sticky;top:0;z-index:20;
+}
+.scanner-left{display:flex;align-items:center;gap:10px}
+.back-btn{
+  width:34px;height:34px;background:var(--surface2);
+  border:1px solid var(--border);border-radius:10px;
+  display:flex;align-items:center;justify-content:center;
+  font-size:16px;cursor:pointer;
+}
+.scanner-title-block{}
+.scanner-title{font-family:'Cinzel',serif;font-size:10px;letter-spacing:2px;
+  background:linear-gradient(90deg,var(--gold),var(--gold-l));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.scanner-staff{font-size:11px;color:var(--text2);margin-top:1px}
+.scanner-badges{display:flex;gap:6px}
+.badge{font-size:11px;font-weight:700;padding:4px 10px;border-radius:20px;letter-spacing:.3px}
+.badge-v{background:rgba(108,99,255,.2);color:#a09fff;border:1px solid rgba(108,99,255,.3)}
+.badge-a{background:rgba(34,208,122,.15);color:var(--success);border:1px solid rgba(34,208,122,.3);display:none}
 
-  .loading { text-align: center; padding: 20px; color: var(--text2); font-size: 14px; display: none; }
+.scanner-body{padding:14px;flex:1}
+.tabs2{display:flex;background:var(--surface2);border-radius:12px;padding:4px;border:1px solid var(--border);margin-bottom:14px}
+.tab2{flex:1;text-align:center;padding:10px;font-size:13px;font-weight:600;color:var(--text2);border-radius:9px;cursor:pointer;transition:all .2s;letter-spacing:.3px}
+.tab2.active{background:linear-gradient(135deg,rgba(201,168,76,.15),rgba(108,99,255,.15));color:var(--text);border:1px solid rgba(201,168,76,.2)}
+.panel2{display:none}.panel2.active{display:block}
+
+/* Camera */
+.cam-wrap{
+  position:relative;border-radius:var(--r);overflow:hidden;
+  background:#000;aspect-ratio:1;width:100%;
+  border:1px solid rgba(201,168,76,.15);
+}
+#video{width:100%;height:100%;object-fit:cover;display:block}
+.scan-ov{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none}
+.s-frame{
+  width:62%;aspect-ratio:1;
+  border:2.5px solid var(--gold);border-radius:14px;
+  box-shadow:0 0 0 9999px rgba(0,0,0,.55);
+}
+.s-corners{position:absolute;width:62%;aspect-ratio:1}
+.s-corners::before,.s-corners::after,.s-corners span::before,.s-corners span::after{
+  content:'';position:absolute;width:18px;height:18px;
+  border-color:var(--gold-l);border-style:solid;
+}
+.s-corners::before {top:-1px;left:-1px;border-width:3px 0 0 3px;border-radius:4px 0 0 0}
+.s-corners::after  {top:-1px;right:-1px;border-width:3px 3px 0 0;border-radius:0 4px 0 0}
+.s-corners span::before{bottom:-1px;left:-1px;border-width:0 0 3px 3px;border-radius:0 0 0 4px}
+.s-corners span::after {bottom:-1px;right:-1px;border-width:0 3px 3px 0;border-radius:0 0 4px 0}
+.s-line{
+  position:absolute;width:62%;height:2px;
+  background:linear-gradient(90deg,transparent,var(--gold),transparent);
+  animation:scanline 2s ease-in-out infinite;
+  box-shadow:0 0 8px rgba(201,168,76,.6);
+}
+@keyframes scanline{0%,100%{top:19%}50%{top:81%}}
+#canvas{display:none}
+.cam-status{text-align:center;margin-top:10px;font-size:12px;color:var(--text2);letter-spacing:.5px;height:18px}
+.cam-btn-row{display:flex;gap:10px;margin-top:10px}
+.btn{
+  flex:1;padding:14px;font-size:14px;font-weight:700;
+  border:none;border-radius:12px;cursor:pointer;
+  transition:transform .1s,opacity .2s;letter-spacing:.3px;font-family:inherit;
+}
+.btn:active{transform:scale(.97);opacity:.85}
+.btn-gold{background:linear-gradient(135deg,var(--gold),var(--gold-l));color:#080810;font-weight:800}
+.btn-ghost{background:var(--surface2);color:var(--text2);border:1px solid var(--border)}
+
+/* Manual */
+.manual-input{
+  width:100%;background:var(--surface2);
+  border:1.5px solid var(--border);border-radius:12px;
+  padding:16px;font-size:18px;font-weight:700;
+  color:var(--text);outline:none;letter-spacing:2px;
+  text-align:center;font-family:monospace;transition:border-color .2s;
+}
+.manual-input:focus{border-color:var(--gold)}
+.manual-hint{font-size:11px;color:var(--text2);text-align:center;margin:8px 0 12px;letter-spacing:.5px}
+
+.loading{
+  display:none;text-align:center;padding:24px;
+  color:var(--text2);font-size:13px;letter-spacing:1px;
+}
+.loading::after{
+  content:'';display:inline-block;width:16px;height:16px;
+  border:2px solid var(--border);border-top-color:var(--gold);
+  border-radius:50%;animation:spin .8s linear infinite;margin-left:8px;vertical-align:middle;
+}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* Result card */
+.v-card{
+  display:none;border-radius:var(--r);padding:20px;margin-top:14px;
+  animation:pop .22s cubic-bezier(.34,1.56,.64,1);
+}
+@keyframes pop{from{transform:scale(.88);opacity:0}to{transform:scale(1);opacity:1}}
+.v-card.success{background:rgba(34,208,122,.08);border:1px solid rgba(34,208,122,.3)}
+.v-card.warn   {background:rgba(255,179,68,.08); border:1px solid rgba(255,179,68,.3)}
+.v-card.error  {background:rgba(255,92,92,.08);  border:1px solid rgba(255,92,92,.3)}
+.v-card.special{background:rgba(201,168,76,.08); border:2px solid rgba(201,168,76,.45)}
+.vc-icon{font-size:40px;text-align:center;margin-bottom:4px}
+.vc-msg {font-size:15px;font-weight:700;text-align:center;letter-spacing:.5px}
+.vc-name{font-size:28px;font-weight:800;text-align:center;margin:6px 0 2px;letter-spacing:-.5px}
+.vc-sub {font-size:11px;color:var(--text2);text-align:center;font-family:monospace;letter-spacing:1px}
+.vc-note{
+  margin-top:10px;padding:10px 12px;
+  background:rgba(201,168,76,.12);border:1px solid rgba(201,168,76,.3);
+  border-radius:10px;font-size:12px;color:var(--gold-l);line-height:1.6;letter-spacing:.3px;
+}
+.actual-sec{display:none;margin-top:16px}
+.actual-lbl{font-size:11px;color:var(--text2);text-align:center;letter-spacing:2px;text-transform:uppercase;margin-bottom:10px}
+.actual-btns{display:grid;grid-template-columns:repeat(5,1fr);gap:8px}
+.a-btn{
+  height:60px;font-size:24px;font-weight:800;
+  background:var(--surface2);color:var(--text);
+  border:1.5px solid var(--border);border-radius:12px;
+  cursor:pointer;transition:all .12s;
+  display:flex;align-items:center;justify-content:center;
+}
+.a-btn:active{transform:scale(.9)}
+.a-btn.sel{background:var(--success);color:#000;border-color:var(--success);box-shadow:0 0 14px rgba(34,208,122,.35)}
+.confirm-flash{
+  display:none;margin-top:12px;padding:13px;
+  background:rgba(34,208,122,.15);border:1px solid rgba(34,208,122,.35);
+  border-radius:12px;text-align:center;
+  font-size:14px;font-weight:700;color:var(--success);
+  animation:pop .2s ease;letter-spacing:.3px;
+}
+.divider-line{
+  display:flex;align-items:center;gap:10px;
+  margin:14px 0 12px;color:var(--text2);font-size:11px;letter-spacing:1.5px;
+}
+.divider-line::before,.divider-line::after{content:'';flex:1;height:1px;background:var(--border)}
+
+/* Stats modal */
+.stats-ov{
+  display:none;position:fixed;inset:0;
+  background:rgba(0,0,0,.85);z-index:100;
+  align-items:flex-end;justify-content:center;
+  backdrop-filter:blur(6px);
+}
+.stats-ov.open{display:flex}
+.stats-panel{
+  background:var(--surface);border:1px solid rgba(201,168,76,.2);
+  border-radius:24px 24px 0 0;padding:20px 20px 36px;
+  width:100%;max-width:480px;
+  animation:slideup .28s cubic-bezier(.34,1.2,.64,1);
+}
+@keyframes slideup{from{transform:translateY(100%)}to{transform:translateY(0)}}
+.stats-handle{width:40px;height:4px;background:var(--border);border-radius:2px;margin:0 auto 16px}
+.stats-title{font-family:'Cinzel',serif;font-size:13px;letter-spacing:2px;color:var(--gold);margin-bottom:16px;text-align:center}
+.stats-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px}
+.stat-card{background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:14px;text-align:center}
+.stat-n{font-size:32px;font-weight:800;line-height:1}
+.stat-l{font-size:11px;color:var(--text2);margin-top:4px;letter-spacing:.5px}
+.stats-close{width:100%;padding:13px;background:var(--surface2);border:1px solid var(--border);border-radius:12px;color:var(--text2);font-size:14px;cursor:pointer;font-family:inherit;margin-top:6px}
+
+/* FAB */
+.fab{
+  position:fixed;bottom:20px;right:16px;z-index:50;
+  width:50px;height:50px;border-radius:50%;
+  background:linear-gradient(135deg,var(--gold),var(--gold-l));
+  color:#080810;font-size:20px;border:none;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+  box-shadow:0 4px 18px rgba(201,168,76,.4);transition:transform .15s;
+}
+.fab:active{transform:scale(.92)}
+.fab.hidden{display:none}
+
+/* Status bar */
+.status-bar{
+  position:fixed;bottom:0;left:0;right:0;
+  background:var(--surface);border-top:1px solid var(--border);
+  padding:7px 16px 18px;
+  display:flex;align-items:center;justify-content:space-between;
+  font-size:11px;color:var(--text2);letter-spacing:.5px;z-index:10;
+}
+.s-dot{width:7px;height:7px;border-radius:50%;display:inline-block;margin-right:5px}
+.s-dot.on{background:var(--success);box-shadow:0 0 6px var(--success)}
+.s-dot.off{background:var(--danger)}
+.pb{height:60px}
 </style>
 </head>
 <body>
 
-<div class="header">
-  <div>
-    <div class="header-title">🎵 哈佛元智音樂會 2.0</div>
-    <div class="header-sub">掃票系統</div>
+<!-- ══════════════════════════════
+     PAGE 1: LOGIN
+══════════════════════════════ -->
+<div class="page active" id="pageLogin">
+  <div class="login-wrap">
+    <div class="login-logo">II</div>
+    <div class="login-event">HARVARD × YZU · 2026.06.03</div>
+    <div class="login-card">
+      <div class="login-title">工作人員登入</div>
+      <div class="login-sub">請輸入您的 4 位 PIN 碼</div>
+      <div class="login-pin-display">
+        <div class="pin-dot" id="d0"></div>
+        <div class="pin-dot" id="d1"></div>
+        <div class="pin-dot" id="d2"></div>
+        <div class="pin-dot" id="d3"></div>
+      </div>
+      <div class="numpad">
+        <div class="num-btn" onclick="pinInput('1')">1</div>
+        <div class="num-btn" onclick="pinInput('2')">2</div>
+        <div class="num-btn" onclick="pinInput('3')">3</div>
+        <div class="num-btn" onclick="pinInput('4')">4</div>
+        <div class="num-btn" onclick="pinInput('5')">5</div>
+        <div class="num-btn" onclick="pinInput('6')">6</div>
+        <div class="num-btn" onclick="pinInput('7')">7</div>
+        <div class="num-btn" onclick="pinInput('8')">8</div>
+        <div class="num-btn" onclick="pinInput('9')">9</div>
+        <div class="num-btn zero" onclick="pinInput('0')">0</div>
+        <div class="num-btn del" onclick="pinDel()">⌫</div>
+      </div>
+      <div class="login-err" id="loginErr"></div>
+    </div>
   </div>
-  <div class="count-badge" id="headerCount">入場 0</div>
 </div>
 
-<div class="main">
-  <div class="device-row">
-    <label>入口編號</label>
-    <input id="deviceId" placeholder="例如：入口A" value="入口A">
+<!-- ══════════════════════════════
+     PAGE 2: HOME
+══════════════════════════════ -->
+<div class="page" id="pageHome">
+  <div class="home-header">
+    <div class="home-header-top">
+      <div class="home-logo-row">
+        <div class="home-logo-ii">II</div>
+        <div>
+          <div class="home-title">HARVARD × YZU CONCERT</div>
+          <div class="home-sub">哈佛元智音樂會 2.0 工作人員</div>
+        </div>
+      </div>
+      <div class="staff-pill" id="homeStaffPill">工作人員</div>
+    </div>
   </div>
 
-  <div class="tabs">
-    <div class="tab active" onclick="switchTab('camera')">📷 相機掃描</div>
-    <div class="tab" onclick="switchTab('upload')">🖼 上傳圖片</div>
-    <div class="tab" onclick="switchTab('manual')">⌨️ 手動輸入</div>
-  </div>
+  <div class="home-body">
 
-  <!-- Camera -->
-  <div id="tab-camera" class="panel active">
-    <div class="camera-wrap">
-      <video id="video" autoplay playsinline muted></video>
-      <canvas id="canvas"></canvas>
-      <div class="scan-overlay">
-        <div class="scan-frame"></div>
-        <div class="scan-line"></div>
+    <!-- 活動資訊卡 -->
+    <div class="home-date-card">
+      <div class="home-date-block">
+        <div class="home-date-day">03</div>
+        <div class="home-date-mon">JUN 2026</div>
+      </div>
+      <div style="width:1px;height:40px;background:rgba(201,168,76,.2)"></div>
+      <div class="home-date-info">
+        <div class="home-date-title">哈佛元智音樂會 2.0</div>
+        <div class="home-date-detail">
+          18:00 開始報到 · 18:30 演出開始<br>
+          元智大學有庠廳 · 桃園市中壢區遠東路135號
+        </div>
       </div>
     </div>
-    <p class="cam-hint" id="camHint">按下開始掃描</p>
-    <button class="btn" id="camBtn" onclick="toggleCamera()" style="margin-top:12px">開始掃描</button>
-  </div>
 
-  <!-- Upload -->
-  <div id="tab-upload" class="panel">
-    <div class="upload-area" onclick="document.getElementById('fileInput').click()">
-      <div class="upload-icon">📂</div>
-      <div class="upload-text">點擊選擇 QR Code 圖片<br>或截圖後選取</div>
+    <!-- 流程表 -->
+    <div class="section-title">今日流程</div>
+    <div id="nowLabel" style="display:none"><span class="now-label">▶ 目前進行中</span></div>
+    <div class="timeline" id="timeline">
+      <!-- 動態生成 -->
     </div>
-    <input type="file" id="fileInput" accept="image/*" onchange="handleFile(event)">
-    <img id="preview-img">
-    <button class="btn" id="uploadScanBtn" onclick="scanUploadedImage()" style="display:none;margin-top:12px">掃描此圖片</button>
-  </div>
 
-  <!-- Manual -->
-  <div id="tab-manual" class="panel">
-    <div class="input-group">
-      <label>票券 ID</label>
-      <input id="manualId" placeholder="輸入票券 ID（英數字）" autocomplete="off" autocorrect="off" autocapitalize="off">
+    <!-- 緊急聯絡人 -->
+    <div class="section-title">緊急聯絡人</div>
+    <div class="contact-cards">
+      <div class="contact-card">
+        <div class="contact-info">
+          <div class="contact-role">總召</div>
+          <div class="contact-name">林楚卿主任</div>
+        </div>
+        <a class="contact-call" href="tel:">📞 聯絡</a>
+      </div>
+      <div class="contact-card">
+        <div class="contact-info">
+          <div class="contact-role">PM · 活動負責人</div>
+          <div class="contact-name">葉亮廷助理</div>
+        </div>
+        <a class="contact-call" href="tel:0975085869">📞 0975-085-869</a>
+      </div>
+      <div class="contact-card">
+        <div class="contact-info">
+          <div class="contact-role">場控</div>
+          <div class="contact-name">簡修平</div>
+        </div>
+        <a class="contact-call" href="tel:">📞 聯絡</a>
+      </div>
     </div>
-    <button class="btn" onclick="manualVerify()">驗票</button>
+          <div class="contact-name">林楚卿主任</div>
+        </div>
+        <a class="contact-call" href="tel:">📞 聯絡</a>
+      </div>
+      <div class="contact-card">
+        <div class="contact-info">
+          <div class="contact-role">PM · 活動負責人</div>
+          <div class="contact-name">葉亮廷</div>
+        </div>
+        <a class="contact-call" href="tel:0975085869">📞 0975-085869</a>
+      </div>
+    </div>
+
+    <div class="pb"></div>
   </div>
 
-  <div class="loading" id="loading">驗票中...</div>
+  <!-- 開始掃票 CTA -->
+  <div class="scan-cta">
+    <button class="scan-btn" onclick="goScanner()">
+      <span style="font-size:20px">🎟</span> 開始掃票報到
+    </button>
+  </div>
+</div>
 
-  <div class="result" id="result">
-    <div class="result-icon" id="rIcon"></div>
-    <div class="result-msg" id="rMsg"></div>
-    <div class="result-name" id="rName"></div>
-    <div class="result-id" id="rId"></div>
+<!-- ══════════════════════════════
+     PAGE 3: SCANNER
+══════════════════════════════ -->
+<div class="page" id="pageScanner">
+  <div class="scanner-header">
+    <div class="scanner-left">
+      <div class="back-btn" onclick="goHome()">←</div>
+      <div class="scanner-title-block">
+        <div class="scanner-title">SCAN &amp; CHECK-IN</div>
+        <div class="scanner-staff" id="scannerStaff">工作人員</div>
+      </div>
+    </div>
+    <div class="scanner-badges">
+      <div class="badge badge-a" id="badgeA">實際 0</div>
+      <div class="badge badge-v" id="badgeV">驗票 0</div>
+    </div>
+  </div>
+
+  <div class="scanner-body">
+    <div class="tabs2">
+      <div class="tab2 active" id="tab2Cam" onclick="switchTab2('cam')">📷 相機掃描</div>
+      <div class="tab2" id="tab2Man" onclick="switchTab2('man')">⌨️ 手動輸入</div>
+    </div>
+
+    <!-- Camera -->
+    <div class="panel2 active" id="p2cam">
+      <div class="cam-wrap">
+        <video id="video" autoplay playsinline muted></video>
+        <canvas id="canvas"></canvas>
+        <div class="scan-ov">
+          <div class="s-frame"></div>
+          <div class="s-corners"><span></span></div>
+          <div class="s-line"></div>
+        </div>
+      </div>
+      <div class="cam-status" id="camStatus">點擊下方按鈕開始掃描</div>
+      <div class="cam-btn-row">
+        <button class="btn btn-gold" id="camBtn" onclick="toggleCamera()">開始掃描</button>
+      </div>
+    </div>
+
+    <!-- Manual -->
+    <div class="panel2" id="p2man">
+      <input class="manual-input" id="manualId"
+        placeholder="HYZ-XXX-XXX001"
+        autocomplete="off" autocorrect="off" autocapitalize="characters" spellcheck="false">
+      <div class="manual-hint">輸入票券 ID 後按 Enter 或點擊驗票</div>
+      <button class="btn btn-gold" onclick="manualVerify()">驗　票</button>
+    </div>
+
+    <div class="loading" id="loading">驗票中</div>
+
+    <!-- Result Card -->
+    <div class="v-card" id="vCard">
+      <div class="vc-icon" id="vcIcon"></div>
+      <div class="vc-msg"  id="vcMsg"></div>
+      <div class="vc-name" id="vcName"></div>
+      <div class="vc-sub"  id="vcSub"></div>
+      <div class="vc-note" id="vcNote" style="display:none"></div>
+      <div class="actual-sec" id="actualSec">
+        <div class="divider-line">實際到場人數</div>
+        <div class="actual-btns">
+          <div class="a-btn" onclick="confirmActual(1)">1</div>
+          <div class="a-btn" onclick="confirmActual(2)">2</div>
+          <div class="a-btn" onclick="confirmActual(3)">3</div>
+          <div class="a-btn" onclick="confirmActual(4)">4</div>
+          <div class="a-btn" onclick="confirmActual(5)">5</div>
+        </div>
+      </div>
+      <div class="confirm-flash" id="confirmFlash"></div>
+    </div>
+
+    <div class="pb"></div>
+  </div>
+
+  <!-- FAB stats -->
+  <button class="fab" id="fab" onclick="openStats()">📊</button>
+
+  <!-- Status bar -->
+  <div class="status-bar">
+    <div><span class="s-dot on" id="sDot"></span><span id="sText">系統正常</span></div>
+    <div id="sClock"></div>
+  </div>
+</div>
+
+<!-- Stats Modal -->
+<div class="stats-ov" id="statsOv" onclick="closeStats(event)">
+  <div class="stats-panel" onclick="event.stopPropagation()">
+    <div class="stats-handle"></div>
+    <div class="stats-title">LIVE STATISTICS</div>
+    <div class="stats-grid">
+      <div class="stat-card"><div class="stat-n" id="sV" style="color:var(--gold)">—</div><div class="stat-l">驗票筆數</div></div>
+      <div class="stat-card"><div class="stat-n" id="sA" style="color:var(--success)">—</div><div class="stat-l">實際到場</div></div>
+      <div class="stat-card"><div class="stat-n" id="sT" style="color:var(--text2)">—</div><div class="stat-l">報名總人數</div></div>
+      <div class="stat-card"><div class="stat-n" id="sR" style="color:var(--warn)">—</div><div class="stat-l">尚未入場</div></div>
+    </div>
+    <div style="font-size:11px;color:var(--text2);text-align:center;margin-bottom:14px" id="sUp"></div>
+    <button class="stats-close" onclick="closeStats()">關閉</button>
   </div>
 </div>
 
 <script>
-// ⚠️ 將下方網址換成你的 Google Apps Script 部署網址
-const API_URL = 'https://script.google.com/macros/s/AKfycbwGZCWcn-JdrR7dSB61vkRQW614APYGjwr-LRDc_fgYSkWxLboBHwAkEk5HkxpEhH0r/exec';
+// ══ CONFIG ══════════════════════════════════════
+// ⚠️ 換成你的 Google Apps Script 部署網址
+const API_URL = '';
 
+// 工讀生 PIN 對照表 — 活動前換成真實姓名和入口
+// 格式：'PIN碼': { name:'姓名', role:'職位/入口' }
+const STAFF = {
+  '1101': { name: '工讀生A'  , role: '入口 1'  },
+  '1102': { name: '工讀生B'  , role: '入口 2'  },
+  '1103': { name: '工讀生C'  , role: '入口 3'  },
+  '1104': { name: '工讀生D'  , role: '入口 4'  },
+  '1105': { name: '工讀生E'  , role: '貴賓引導'  },
+  '1106': { name: '工讀生F'  , role: '場內引導'  },
+  '1107': { name: '工讀生G'  , role: '場內引導'  },
+  '1108': { name: '工讀生H'  , role: '候補管理'  },
+  '2001': { name: '主持人'  , role: '主持'  },
+  '9999': { name: '主辦方'  , role: '總覽監控'  }
+};
+
+// 流程表
+const SCHEDULE = [
+  { time: '14:30', end: '15:30', event: '元智團隊彩排', note: '', type: 'prep' },
+  { time: '15:30', end: '16:30', event: '內高團隊彩排', note: '', type: 'prep' },
+  { time: '16:30', end: '17:30', event: '哈佛團隊彩排', note: '', type: 'prep' },
+  { time: '17:30', end: '18:00', event: '三團合唱彩排', note: '', type: 'prep' },
+  { time: '18:00', end: '18:30', event: '觀眾開始報到入場', note: '表演團隊用餐休息', type: 'checkin', highlight: true },
+  { time: '18:30', end: '18:40', event: '主持人開場', note: '貴賓場名 + 合照', type: 'show' },
+  { time: '18:40', end: '18:50', event: '元智 LaLaBand（2首）', note: '我當你空氣 · 勇敢', type: 'show' },
+  { time: '18:50', end: '19:05', event: '內壢高中阿卡貝拉（4首）', note: 'Kings and Queens · 在迦納共和國離婚 · VP Show · Choose Your Fighter', type: 'show' },
+  { time: '19:05', end: '19:20', event: 'Harvard Radcliffe Pitches', note: '曲目確認中', type: 'show' },
+  { time: '19:20', end: '19:25', event: '中場休息', note: '', type: 'break' },
+  { time: '19:25', end: '19:30', event: '元智 LaLaBand（1首）', note: '刀與槍', type: 'show' },
+  { time: '19:30', end: '19:45', event: 'Harvard Radcliffe Pitches', note: '曲目確認中', type: 'show' },
+  { time: '19:45', end: '19:50', event: '三團大合唱', note: 'NANANA', type: 'show' },
+  { time: '19:50', end: '20:00', event: '謝幕 · 送花 · 送禮 · 大合照', note: '廖校長贈錦旗 → 台上大合照（含貴賓）', type: 'end' }
+];
+
+// ══ STATE ══════════════════════════════════════
+let currentStaff = null;
+let pinBuffer = '';
 let cameraActive = false;
 let videoStream = null;
 let scanInterval = null;
-let uploadedImageData = null;
-let checkedInCount = 0;
+let verifiedCount = 0;
+let actualTotal = 0;
+let pendingTicketId = null;
+let confirmTimer = null;
 
-// ---- Stats ----
-async function fetchStats() {
-  try {
-    const res = await fetch(API_URL + '?action=stats');
-    const data = await res.json();
-    if (data.success) {
-      checkedInCount = data.checked_in;
-      document.getElementById('headerCount').textContent = `入場 ${checkedInCount}`;
-    }
-  } catch(e) {}
+// ══ INIT ══════════════════════════════════════
+window.addEventListener('load', () => {
+  buildTimeline();
+  updateClock();
+  setInterval(updateClock, 1000);
+  // 如果之前登入過（同session），跳過登入
+  const saved = sessionStorage.getItem('staffPin');
+  if (saved && STAFF[saved]) {
+    currentStaff = STAFF[saved];
+    showPage('pageHome');
+    updateStaffUI();
+  }
+});
+
+// ══ LOGIN ══════════════════════════════════════
+function pinInput(d) {
+  if (pinBuffer.length >= 4) return;
+  pinBuffer += d;
+  updatePinDots();
+  if (pinBuffer.length === 4) setTimeout(checkPin, 150);
 }
-fetchStats();
-setInterval(fetchStats, 30000);
-
-// ---- Tabs ----
-function switchTab(tab) {
-  ['camera','upload','manual'].forEach(t => {
-    document.getElementById('tab-' + t).classList.toggle('active', t === tab);
-  });
-  document.querySelectorAll('.tab').forEach((el, i) => {
-    el.classList.toggle('active', ['camera','upload','manual'][i] === tab);
-  });
-  if (tab !== 'camera' && cameraActive) stopCamera();
-  clearResult();
+function pinDel() {
+  if (!pinBuffer.length) return;
+  pinBuffer = pinBuffer.slice(0, -1);
+  updatePinDots();
+  document.getElementById('loginErr').textContent = '';
 }
-
-// ---- Camera ----
-async function toggleCamera() {
-  if (cameraActive) {
-    stopCamera();
+function updatePinDots() {
+  for (let i = 0; i < 4; i++) {
+    const el = document.getElementById('d' + i);
+    el.classList.toggle('filled', i < pinBuffer.length);
+    el.classList.remove('error');
+  }
+}
+function checkPin() {
+  if (STAFF[pinBuffer]) {
+    currentStaff = STAFF[pinBuffer];
+    sessionStorage.setItem('staffPin', pinBuffer);
+    pinBuffer = '';
+    updatePinDots();
+    showPage('pageHome');
+    updateStaffUI();
   } else {
-    startCamera();
+    for (let i = 0; i < 4; i++) document.getElementById('d' + i).classList.add('error');
+    document.getElementById('loginErr').textContent = 'PIN 碼錯誤，請重試';
+    if (navigator.vibrate) navigator.vibrate([100, 50, 100]);
+    setTimeout(() => { pinBuffer = ''; updatePinDots(); document.getElementById('loginErr').textContent = ''; }, 900);
   }
 }
 
+// ══ PAGES ══════════════════════════════════════
+function showPage(id) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+function goHome() {
+  if (cameraActive) stopCamera();
+  showPage('pageHome');
+  document.getElementById('fab').classList.add('hidden');
+}
+function goScanner() {
+  showPage('pageScanner');
+  document.getElementById('fab').classList.remove('hidden');
+}
+function updateStaffUI() {
+  if (!currentStaff) return;
+  const label = `${currentStaff.name} · ${currentStaff.role}`;
+  document.getElementById('homeStaffPill').textContent = currentStaff.name;
+  document.getElementById('scannerStaff').textContent = label;
+}
+
+// ══ TIMELINE ══════════════════════════════════
+function buildTimeline() {
+  const container = document.getElementById('timeline');
+  const now = new Date();
+  const hhmm = (h, m) => h * 60 + m;
+  const nowMin = hhmm(now.getHours(), now.getMinutes());
+  let currentIdx = -1;
+  SCHEDULE.forEach((item, i) => {
+    const [sh, sm] = item.time.split(':').map(Number);
+    const [eh, em] = item.end.split(':').map(Number);
+    const start = hhmm(sh, sm), end = hhmm(eh, em);
+    if (nowMin >= start && nowMin < end) currentIdx = i;
+  });
+  if (currentIdx >= 0) document.getElementById('nowLabel').style.display = 'block';
+  container.innerHTML = SCHEDULE.map((item, i) => {
+    const isCurrent = i === currentIdx;
+    const isPast = (() => {
+      const [eh, em] = item.end.split(':').map(Number);
+      return nowMin >= hhmm(eh, em);
+    })();
+    let badge = '';
+    if (item.type === 'checkin') badge = '<span class="tl-badge green">報到</span>';
+    if (item.type === 'show') badge = '<span class="tl-badge">演出</span>';
+    if (item.type === 'end') badge = '<span class="tl-badge">謝幕</span>';
+    return `<div class="tl-item ${isCurrent ? 'now' : item.highlight ? 'highlight' : ''}" style="opacity:${isPast && !isCurrent ? 0.45 : 1}">
+      <div class="tl-time">${item.time} – ${item.end}${badge}</div>
+      <div class="tl-event">${item.event}</div>
+      ${item.note ? `<div class="tl-note">${item.note}</div>` : ''}
+    </div>`;
+  }).join('');
+}
+
+// ══ TABS ══════════════════════════════════════
+function switchTab2(t) {
+  document.getElementById('p2cam').classList.toggle('active', t === 'cam');
+  document.getElementById('p2man').classList.toggle('active', t === 'man');
+  document.getElementById('tab2Cam').classList.toggle('active', t === 'cam');
+  document.getElementById('tab2Man').classList.toggle('active', t === 'man');
+  if (t !== 'cam' && cameraActive) stopCamera();
+  hideCard();
+}
+
+// ══ CAMERA ══════════════════════════════════════
+async function toggleCamera() { cameraActive ? stopCamera() : startCamera(); }
 async function startCamera() {
   try {
-    videoStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+    videoStream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: 'environment', width: { ideal: 1280 } }
+    });
     document.getElementById('video').srcObject = videoStream;
     document.getElementById('camBtn').textContent = '停止掃描';
-    document.getElementById('camHint').textContent = '將 QR Code 對準框框';
+    document.getElementById('camStatus').textContent = '將 QR Code 對準框框';
     cameraActive = true;
-    scanInterval = setInterval(scanFrame, 400);
+    scanInterval = setInterval(scanFrame, 350);
   } catch(e) {
-    document.getElementById('camHint').textContent = '無法存取相機，請改用上傳圖片';
+    document.getElementById('camStatus').textContent = '⚠️ 無法存取相機，請使用手動輸入';
   }
 }
-
 function stopCamera() {
   if (videoStream) { videoStream.getTracks().forEach(t => t.stop()); videoStream = null; }
-  clearInterval(scanInterval);
-  cameraActive = false;
+  clearInterval(scanInterval); scanInterval = null; cameraActive = false;
   document.getElementById('camBtn').textContent = '開始掃描';
-  document.getElementById('camHint').textContent = '按下開始掃描';
+  document.getElementById('camStatus').textContent = '點擊下方按鈕開始掃描';
 }
-
 function scanFrame() {
-  const video = document.getElementById('video');
-  if (!video.videoWidth) return;
-  const canvas = document.getElementById('canvas');
-  canvas.width = video.videoWidth;
-  canvas.height = video.videoHeight;
-  const ctx = canvas.getContext('2d');
-  ctx.drawImage(video, 0, 0);
-  const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-  const code = jsQR(imageData.data, imageData.width, imageData.height, { inversionAttempts: 'dontInvert' });
-  if (code && code.data) {
-    stopCamera();
-    processTicket(code.data);
-  }
+  const v = document.getElementById('video');
+  if (!v.videoWidth) return;
+  const c = document.getElementById('canvas');
+  c.width = v.videoWidth; c.height = v.videoHeight;
+  const ctx = c.getContext('2d'); ctx.drawImage(v, 0, 0);
+  const img = ctx.getImageData(0, 0, c.width, c.height);
+  const code = jsQR(img.data, img.width, img.height, { inversionAttempts: 'dontInvert' });
+  if (code && code.data) { stopCamera(); processTicket(code.data); }
 }
 
-// ---- Upload ----
-function handleFile(event) {
-  const file = event.target.files[0];
-  if (!file) return;
-  const reader = new FileReader();
-  reader.onload = (e) => {
-    const img = document.getElementById('preview-img');
-    img.src = e.target.result;
-    img.style.display = 'block';
-    uploadedImageData = e.target.result;
-    document.getElementById('uploadScanBtn').style.display = 'block';
-  };
-  reader.readAsDataURL(file);
-}
-
-function scanUploadedImage() {
-  if (!uploadedImageData) return;
-  const img = new Image();
-  img.onload = () => {
-    const canvas = document.createElement('canvas');
-    canvas.width = img.width;
-    canvas.height = img.height;
-    const ctx = canvas.getContext('2d');
-    ctx.drawImage(img, 0, 0);
-    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-    const code = jsQR(imageData.data, imageData.width, imageData.height, { inversionAttempts: 'attemptBoth' });
-    if (code && code.data) {
-      processTicket(code.data);
-    } else {
-      showResult('error', '❌', '無法識別 QR Code', '請確認圖片清晰', '');
-    }
-  };
-  img.src = uploadedImageData;
-}
-
-// ---- Manual ----
+// ══ MANUAL ══════════════════════════════════════
 function manualVerify() {
-  const id = document.getElementById('manualId').value.trim();
+  const id = document.getElementById('manualId').value.trim().toUpperCase();
   if (!id) return;
   processTicket(id);
+  document.getElementById('manualId').value = '';
 }
+document.addEventListener('DOMContentLoaded', () => {
+  document.getElementById('manualId').addEventListener('keydown', e => { if (e.key === 'Enter') manualVerify(); });
+});
 
-// ---- Process ----
+// ══ PROCESS TICKET ══════════════════════════════
 async function processTicket(ticketId) {
-  clearResult();
+  if (confirmTimer) { clearTimeout(confirmTimer); confirmTimer = null; }
+  hideCard();
   document.getElementById('loading').style.display = 'block';
-  const device = document.getElementById('deviceId').value.trim() || '入口';
+  const role = currentStaff ? `${currentStaff.name}(${currentStaff.role})` : '入口';
   try {
     const res = await fetch(API_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action: 'verify', ticket_id: ticketId, device: device })
+      body: JSON.stringify({ action: 'verify', ticket_id: ticketId, device: role }),
+      signal: AbortSignal.timeout(10000)
     });
     const data = await res.json();
     document.getElementById('loading').style.display = 'none';
-
+    setOnline(true);
     if (data.success) {
-      checkedInCount++;
-      document.getElementById('headerCount').textContent = `入場 ${checkedInCount}`;
-      showResult('success', '✅', '歡迎入場！', data.name || '', `票券：${data.ticket_id}`);
-      vibrate([100, 50, 100]);
+      verifiedCount++;
+      document.getElementById('badgeV').textContent = `驗票 ${verifiedCount}`;
+      pendingTicketId = ticketId;
+      showCard('success', '✅', '驗票成功，歡迎入場', data.name || '', `票券 ${data.ticket_id}`, data.note || null, true);
+      vibrate([80, 40, 80]);
     } else if (data.duplicate) {
-      showResult('warn', '⚠️', '重複入場', data.name || '', `此票已掃描 ${data.scan_count} 次`);
-      vibrate([300]);
+      showCard('warn', '⚠️', '此票已入場', data.name || '', `已掃描 ${data.scan_count} 次`, null, false);
+      vibrate([400]); autoReset(5000);
     } else if (data.not_found) {
-      showResult('error', '❌', '票券無效', '', `ID：${ticketId}`);
-      vibrate([500]);
+      showCard('error', '❌', '找不到此票券', '', `ID：${ticketId}`, null, false);
+      vibrate([600]); autoReset(5000);
     } else {
-      showResult('error', '❌', data.message || '驗票失敗', '', '');
+      showCard('error', '❌', data.message || '驗票失敗', '', '', null, false);
+      autoReset(5000);
     }
   } catch(e) {
     document.getElementById('loading').style.display = 'none';
-    showResult('error', '❌', '網路錯誤，請重試', '', '');
+    setOnline(false);
+    showCard('error', '❌', '網路逾時，請重試', '', '', null, false);
+    autoReset(4000);
   }
-  setTimeout(clearResult, 5000);
 }
 
-function showResult(type, icon, msg, name, id) {
-  const el = document.getElementById('result');
-  el.className = 'result ' + type;
-  el.style.display = 'block';
-  document.getElementById('rIcon').textContent = icon;
-  document.getElementById('rMsg').textContent = msg;
-  document.getElementById('rName').textContent = name;
-  document.getElementById('rId').textContent = id;
+// ══ RESULT CARD ══════════════════════════════════
+function showCard(type, icon, msg, name, sub, note, showActual) {
+  const card = document.getElementById('vCard');
+  card.className = 'v-card ' + type;
+  card.style.display = 'block';
+  document.getElementById('vcIcon').textContent = icon;
+  document.getElementById('vcMsg').textContent = msg;
+  document.getElementById('vcName').textContent = name;
+  document.getElementById('vcSub').textContent = sub;
+  const noteEl = document.getElementById('vcNote');
+  if (note) { noteEl.textContent = '⚠️ ' + note; noteEl.style.display = 'block'; }
+  else { noteEl.style.display = 'none'; }
+  document.getElementById('actualSec').style.display = showActual ? 'block' : 'none';
+  document.getElementById('confirmFlash').style.display = 'none';
+  document.querySelectorAll('.a-btn').forEach(b => b.classList.remove('sel'));
+  card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+function hideCard() {
+  document.getElementById('vCard').style.display = 'none';
+  document.getElementById('loading').style.display = 'none';
+}
+function autoReset(ms) { setTimeout(hideCard, ms); }
+
+// ══ ACTUAL HEADCOUNT ══════════════════════════════
+function confirmActual(n) {
+  if (confirmTimer) { clearTimeout(confirmTimer); confirmTimer = null; }
+  document.querySelectorAll('.a-btn').forEach((b, i) => b.classList.toggle('sel', i + 1 === n));
+  actualTotal += n;
+  const ba = document.getElementById('badgeA');
+  ba.style.display = 'block';
+  ba.textContent = `實際 ${actualTotal}`;
+  document.getElementById('sA').textContent = actualTotal;
+  vibrate([50]);
+  const flash = document.getElementById('confirmFlash');
+  flash.style.display = 'block';
+  flash.textContent = `✅ 記錄 ${n} 人入場　累計實際到場 ${actualTotal} 人`;
+  if (pendingTicketId) {
+    const role = currentStaff ? `${currentStaff.name}(${currentStaff.role})` : '入口';
+    fetch(API_URL, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'update_actual', ticket_id: pendingTicketId, actual_count: n, device: role })
+    }).catch(() => {});
+    pendingTicketId = null;
+  }
+  confirmTimer = setTimeout(() => {
+    hideCard();
+    if (document.getElementById('p2cam').classList.contains('active')) startCamera();
+  }, 1500);
 }
 
-function clearResult() {
-  document.getElementById('result').style.display = 'none';
+// ══ STATS ══════════════════════════════════════
+async function fetchStats() {
+  try {
+    const res = await fetch(API_URL + '?action=stats', { signal: AbortSignal.timeout(8000) });
+    const data = await res.json();
+    if (data.success) {
+      verifiedCount = data.checked_in;
+      document.getElementById('badgeV').textContent = `驗票 ${verifiedCount}`;
+      document.getElementById('sV').textContent = data.checked_in;
+      document.getElementById('sT').textContent = data.total;
+      document.getElementById('sR').textContent = data.not_checked_in;
+      document.getElementById('sUp').textContent = `最後更新：${data.updated_at}`;
+      setOnline(true);
+    }
+  } catch(e) { setOnline(false); }
 }
-
-function vibrate(pattern) {
-  if (navigator.vibrate) navigator.vibrate(pattern);
+function openStats() { fetchStats(); document.getElementById('statsOv').classList.add('open'); }
+function closeStats(e) {
+  if (!e || e.target === document.getElementById('statsOv'))
+    document.getElementById('statsOv').classList.remove('open');
 }
+setInterval(fetchStats, 20000);
 
-// Enter key for manual input
-document.getElementById('manualId').addEventListener('keydown', (e) => {
-  if (e.key === 'Enter') manualVerify();
-});
+// ══ UTILS ══════════════════════════════════════
+function setOnline(v) {
+  document.getElementById('sDot').className = 's-dot ' + (v ? 'on' : 'off');
+  document.getElementById('sText').textContent = v ? '系統正常' : '網路異常';
+}
+function updateClock() {
+  const now = new Date();
+  const pad = n => String(n).padStart(2, '0');
+  document.getElementById('sClock').textContent = `${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;
+  // 流程表每分鐘更新高亮
+  if (now.getSeconds() === 0) buildTimeline();
+}
+function vibrate(p) { if (navigator.vibrate) navigator.vibrate(p); }
 </script>
 </body>
 </html>
