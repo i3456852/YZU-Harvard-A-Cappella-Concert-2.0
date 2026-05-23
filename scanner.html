@@ -447,6 +447,18 @@ body{
           <div class="contact-role">PM · 活動負責人</div>
           <div class="contact-name">葉亮廷</div>
         </div>
+        <a class="contact-call" href="tel:0975085869">📞 0975-085-869</a>
+      </div>
+    </div>
+          <div class="contact-name">林楚卿主任</div>
+        </div>
+        <a class="contact-call" href="tel:">📞 聯絡</a>
+      </div>
+      <div class="contact-card">
+        <div class="contact-info">
+          <div class="contact-role">PM · 活動負責人</div>
+          <div class="contact-name">葉亮廷</div>
+        </div>
         <a class="contact-call" href="tel:0975085869">📞 0975-085869</a>
       </div>
     </div>
@@ -506,8 +518,8 @@ body{
     <!-- Manual -->
     <div class="panel2" id="p2man">
       <input class="manual-input" id="manualId"
-        placeholder="輸入票券號碼（如：100001）"
-        autocomplete="off" autocorrect="off" autocapitalize="off" inputmode="numeric" pattern="[0-9]*" spellcheck="false">
+        placeholder="HYZ-XXX-XXX001"
+        autocomplete="off" autocorrect="off" autocapitalize="characters" spellcheck="false">
       <div class="manual-hint">輸入票券 ID 後按 Enter 或點擊驗票</div>
       <button class="btn btn-gold" onclick="manualVerify()">驗　票</button>
     </div>
@@ -566,21 +578,22 @@ body{
 <script>
 // ══ CONFIG ══════════════════════════════════════
 // ⚠️ 換成你的 Google Apps Script 部署網址
-const API_URL = 'https://script.google.com/macros/s/AKfycbwGZCWcn-JdrR7dSB61vkRQW614APYGjwr-LRDc_fgYSkWxLboBHwAkEk5HkxpEhH0r/exec';
+const API_URL = 'https://script.google.com/macros/s/AKfycbzpl3lOOCJET36EFIshkaOCT45Xv6v_I8-2wHst_ZSBq1Q23XsDLxVXrc9CTVCS_c1H/exec';
 
 // 工讀生 PIN 對照表 — 活動前換成真實姓名和入口
 // 格式：'PIN碼': { name:'姓名', role:'職位/入口' }
 const STAFF = {
-  '1101': { name: '工讀生A', role: '入口 1' },
-  '1102': { name: '工讀生B', role: '入口 2' },
-  '1103': { name: '工讀生C', role: '入口 3' },
-  '1104': { name: '工讀生D', role: '入口 4' },
-  '1105': { name: '工讀生E', role: '貴賓引導' },
-  '1106': { name: '工讀生F', role: '場內引導' },
-  '1107': { name: '工讀生G', role: '場內引導' },
-  '1108': { name: '工讀生H', role: '候補管理' },
-  '2001': { name: '主持人', role: '主持' },
-  '9999': { name: '主辦方', role: '總覽監控' },
+  '1101': { name: '工讀生A'  , role: '入口 1'  },
+  '1102': { name: '工讀生B'  , role: '入口 2'  },
+  '1103': { name: '工讀生C'  , role: '入口 3'  },
+  '1104': { name: '工讀生D'  , role: '入口 4'  },
+  '1105': { name: '工讀生E'  , role: '貴賓引導'  },
+  '1106': { name: '工讀生F'  , role: '場內引導'  },
+  '1107': { name: '工讀生G'  , role: '場內引導'  },
+  '1108': { name: '工讀生H'  , role: '候補管理'  },
+  '2001': { name: '主持人'  , role: '主持'  },
+  '9999': { name: '主辦方'  , role: '總覽監控'  },
+  '9901': { name: '主辦方葉亮廷'  , role: '入口'  }
 };
 
 // 流程表
@@ -598,7 +611,7 @@ const SCHEDULE = [
   { time: '19:25', end: '19:30', event: '元智 LaLaBand（1首）', note: '刀與槍', type: 'show' },
   { time: '19:30', end: '19:45', event: 'Harvard Radcliffe Pitches', note: '曲目確認中', type: 'show' },
   { time: '19:45', end: '19:50', event: '三團大合唱', note: 'NANANA', type: 'show' },
-  { time: '19:50', end: '20:00', event: '謝幕 · 送花 · 送禮 · 大合照', note: '廖校長贈錦旗 → 台上大合照（含貴賓）', type: 'end' },
+  { time: '19:50', end: '20:00', event: '謝幕 · 送花 · 送禮 · 大合照', note: '廖校長贈錦旗 → 台上大合照（含貴賓）', type: 'end' }
 ];
 
 // ══ STATE ══════════════════════════════════════
@@ -770,15 +783,8 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 // ══ PROCESS TICKET ══════════════════════════════
-async function processTicket(rawData) {
+async function processTicket(ticketId) {
   if (confirmTimer) { clearTimeout(confirmTimer); confirmTimer = null; }
-
-  // 解析 QR Code 格式：可能是 "100001|王小明|貴賓" 或純票券ID "100001"
-  const parts = rawData.split('|');
-  const ticketId = parts[0].trim();
-  const qrName   = parts[1] ? parts[1].trim() : null;
-  const qrZone   = parts[2] ? parts[2].trim() : null;
-
   hideCard();
   document.getElementById('loading').style.display = 'block';
   const role = currentStaff ? `${currentStaff.name}(${currentStaff.role})` : '入口';
@@ -796,9 +802,7 @@ async function processTicket(rawData) {
       verifiedCount++;
       document.getElementById('badgeV').textContent = `驗票 ${verifiedCount}`;
       pendingTicketId = ticketId;
-      // 如果 QR Code 帶有分區資訊，顯示給工讀生看
-      const zoneHint = qrZone ? `分區：${qrZone}` : (data.note || null);
-      showCard('success', '✅', '驗票成功，歡迎入場', data.name || qrName || '', `票券 ${data.ticket_id}`, zoneHint, true);
+      showCard('success', '✅', '驗票成功，歡迎入場', data.name || '', `票券 ${data.ticket_id}`, data.note || null, true);
       vibrate([80, 40, 80]);
     } else if (data.duplicate) {
       showCard('warn', '⚠️', '此票已入場', data.name || '', `已掃描 ${data.scan_count} 次`, null, false);
